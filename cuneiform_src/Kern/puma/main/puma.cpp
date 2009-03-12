@@ -864,3 +864,11 @@ PUMA_FUNC(Bool32) PUMA_SetSpecialProject(Word8 nSpecialProject)
 
 	return TRUE;
 }
+
+PUMA_FUNC(Bool32) PUMA_SetMultiLang(int nSecondLanguage)
+{
+
+	gnMultiLang = TRUE;
+	gnSecondLanguage = nSecondLanguage;
+	return TRUE;
+}

@@ -77,6 +77,22 @@ static const langlist langs[] = {
         {PUMA_LANG_LITHUANIAN,"lit"},
         {PUMA_LANG_ESTONIAN,  "est"},
         {PUMA_LANG_TURKISH,   "tur"},
+
+
+        {PUMA_LANG_GERMAN << 8,    "rus_ger"},
+        {PUMA_LANG_FRENCH << 8,    "rus_fra"},
+        {PUMA_LANG_SWEDISH << 8,   "rus_swe"},
+        {PUMA_LANG_SPANISH << 8,   "rus_spa"},
+        {PUMA_LANG_POLISH << 8,    "rus_pol"},
+        {PUMA_LANG_DANISH << 8,    "rus_dan"},
+        {PUMA_LANG_PORTUGUESE << 8,"rus_por"},
+        {PUMA_LANG_DUTCH << 8,     "rus_dut"},
+        {PUMA_LANG_CZECH << 8,     "rus_cze"},
+        {PUMA_LANG_LATVIAN << 8,   "rus_lav"},
+        {PUMA_LANG_LITHUANIAN << 8,"rus_lit"},
+        {PUMA_LANG_ESTONIAN << 8,  "rus_est"},
+        {PUMA_LANG_TURKISH << 8,   "rus_tur"},
+
         {-1, NULL}
 };
 
@@ -301,10 +317,19 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // Set the language.
-    PUMA_SetImportData(PUMA_Word32_Language, &langcode);
-    PUMA_SetImportData(PUMA_Bool32_DotMatrix, &dotmatrix);
-    PUMA_SetImportData(PUMA_Bool32_Fax100, &fax);
+    if (langcode > 255) 
+    {
+	PUMA_SetMultiLang(langcode >> 8);
+	langcode = PUMA_LANG_RUSENG;
+	PUMA_SetImportData(PUMA_Word32_Language, &langcode);  
+	PUMA_SetSpecialProject(1);
+    } 
+    else 
+    	// Set the language.
+	PUMA_SetImportData(PUMA_Word32_Language, &langcode);
+     PUMA_SetImportData(PUMA_Bool32_DotMatrix, &dotmatrix);
+     PUMA_SetImportData(PUMA_Bool32_Fax100, &fax);
+    
 
     if(!PUMA_XOpen(dib, "none.txt")) {
         cerr << "PUMA_Xopen failed.\n";

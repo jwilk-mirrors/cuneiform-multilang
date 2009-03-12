@@ -81,6 +81,9 @@ Int32   global_buf_len=0;   // OLEG fot Consistent
 Bool32 PUMA_Save(Handle hEdPage, const char * lpOutFileName, Int32 lnFormat, Int32 lnCode, Bool32 bAppend );
 #endif
 
+double portion_of_rus_letters(CSTR_line lin_ruseng);
+
+
 static Bool32 rblockProgressStep(Word32 perc)
 {
 	return ProgressStep(2,NULL,perc);
@@ -136,9 +139,10 @@ static Bool32 MakeStrings(Handle hccom,Handle hcpage)
 //////////////////////////////////////////
 static Bool32 RecognizeSetup(int language)
 {
-	Bool32 rc = TRUE;
+    Bool32 rc = TRUE;
 	// рапознавание строк
     PAGEINFO info = {0};
+    
     GetPageInfo(hCPAGE,&info);
 
 //    FrhPageSetup setup={0};
@@ -306,6 +310,135 @@ static Bool32 RecognizeStringsPass1(void)
 
 	return rc;
 }
+
+// Recognize strings in different languages
+
+static Bool32 MultilangRecognizeStringsPass1(void)
+{
+	Bool32 rc = TRUE;
+	// распознавание строк
+	PAGEINFO info = {0};
+	GetPageInfo(hCPAGE,&info);
+	LDPUMA_Console("1-st pass recognition in multi-language mode\n");
+
+	if(rc)
+	{
+		int count = CSTR_GetMaxNumber();
+		int i;
+
+		LDPUMA_StartLoop( hDebugRecognition, count );
+		if(!ProgressStep(2,GetResourceString(IDS_PRG_RECOG),0))
+			rc = FALSE;
+
+		for(i=1;rc && i<=count;i++)
+		{
+		 	RSTR_Options opt={0};
+			opt.pageSkew2048 = info.Incline2048;
+			
+			CSTR_line lin_out,lin_in;
+			if(!ProgressStep(2,NULL,i*100/count))
+				rc = FALSE;
+
+			LDPUMA_LoopNext( hDebugRecognition );
+			if(!LDPUMA_Skip(hDebugRecognition))
+			{
+				LDPUMA_Console("Остановились перед %i строкой.\n",i);
+				LDPUMA_Console("Нажмите любую клавишу...\n");
+				LDPUMA_WaitUserInput(hDebugRecognition,NULL);
+			}
+
+			lin_out = CSTR_NewLine(i, CSTR_LINVERS_MAINOUT, -1); // OLEG
+			if(lin_out == (CSTR_line)NULL)
+			{
+				SetReturnCode_puma(CSTR_GetReturnCode());
+				rc = FALSE;
+				break;
+			}
+
+			lin_in  = CSTR_GetLineHandle (i,CSTR_LINVERS_MAIN);
+			
+			if(lin_in == (CSTR_line)NULL)
+			{
+				SetReturnCode_puma(CSTR_GetReturnCode());
+				rc = FALSE;
+				break;
+			}
+			opt.language = LANG_RUSENG;
+			RSTR_SetOptions (&opt);
+			if (!RSTR_Recog(lin_in, lin_out) ) // Recognition
+			{
+				SetReturnCode_puma(RSTR_GetReturnCode());
+		                rc = FALSE;
+				break;
+			}
+			double prl = portion_of_rus_letters(lin_out);
+			CSTR_DeleteLine(lin_out);
+		
+//			printf("prl %i\n", (int)(prl*100));
+			if (prl >  0.5)
+				opt.language = LANG_RUSSIAN;
+			else
+				opt.language = gnSecondLanguage;
+			//printf("sl %i\n", gnSecondLanguage);
+			RSTR_SetOptions (&opt);
+			lin_out = CSTR_NewLine(i + count, CSTR_LINVERS_MAINOUT, -1);			
+			if (!RSTR_Recog(lin_in, lin_out) ) // Recognition
+			{
+				SetReturnCode_puma(RSTR_GetReturnCode());
+				rc = FALSE;
+				break;
+			}
+			/*
+			else
+			{
+			if( !LDPUMA_Skip(hDebugCancelStringsPass2)&&
+			(!LDPUMA_Skip(hDebugCancelPostSpeller)||
+			!gbSpeller) )
+			{
+			PrintResult(i,lin_out);
+			}
+			}
+			*/
+
+#ifdef _USE_REF_    // Nick 23.05.2001
+			{
+             Int32 numFind = 0;
+			 REF_findEtaz(lin_in, lin_out, &numFind);
+               // есть формулы ?
+			 if( numFind > 0 )
+			 {
+				 // новое число строк
+				 count = CSTR_GetMaxNumber();
+
+				 CSTR_DeleteLine( lin_out );
+
+				 // изменить номер текущей строки
+				 RSTR_ChangeLineNumber(-1);
+				 // перераспознать строку
+				 i--;
+			 }
+			}
+#endif
+		}
+		LDPUMA_DestroyRasterWnd();
+	}
+
+#ifdef _USE_REF_    // Nick 23.05.2001
+	// попробуем найти куски формул
+	REF_unionEtaz();
+#endif
+
+	if(rc)
+	{
+		if(!ProgressStep(2,GetResourceString(IDS_PRG_RECOG2),100))
+			rc = FALSE;
+		rc = RSTR_EndPage(hCPAGE);
+		if(!rc)
+			SetReturnCode_puma(RSTR_GetReturnCode());
+	}
+
+	return rc;
+}
 //////////////////////////////////////////
 static Bool32 RecognizeStringsPass2()
 {
@@ -317,6 +450,12 @@ static Bool32 RecognizeStringsPass2()
 
 	int count = CSTR_GetMaxNumber();
 	int i;
+
+  RSTR_Options opt={0};
+
+//    opt.setup = &fsetup;
+    opt.pageSkew2048 = 0;
+
 
 	LDPUMA_StartLoop( hDebugRecognition, count );
 	if(!ProgressStep(2,GetResourceString(IDS_PRG_RECOG2),0))
@@ -346,6 +485,12 @@ static Bool32 RecognizeStringsPass2()
 		}
 
 		lin_in  = CSTR_GetLineHandle (i,CSTR_LINVERS_MAIN);
+					/*if ((i < 2)||(i>4))
+			                               opt.language = LANG_RUSSIAN;
+			else
+							opt.language  = LANG_FRENCH;
+                                RSTR_SetOptions (&opt);*/
+
 		if(lin_in == (CSTR_line)NULL)
 		{
         continue;
@@ -622,7 +767,7 @@ Bool32 Recognize()
 							strcat( szCstrFileName, "_1.cst");
 							CSTR_SaveCont(szCstrFileName);
 						}
-					rc = RecognizeStringsPass1();
+					rc = gnMultiLang != 0 ? MultilangRecognizeStringsPass1() : RecognizeStringsPass1();
 					RestorePRGTIME( prev );
                     if(!LDPUMA_Skip(hDebugEnableSaveCstr2))
 						{
@@ -636,41 +781,44 @@ Bool32 Recognize()
 					if(rc)
 					{
                         ///////////////////////////////
-                        // OLEG : 01-05-18 : for GiP //
+                        //RecognizeStringsPass1 OLEG : 01-05-18 : for GiP //
                         ///////////////////////////////
-                        if(SPEC_PRJ_GIP==gnSpecialProject&&gnLanguage==LANG_RUSENG)
-                        {
-                            int         i,j,n;
-                            double      s;
-                            CSTR_line   lin_ruseng;
+                        if (!gnMultiLang)
+				if(SPEC_PRJ_GIP==gnSpecialProject&&gnLanguage==LANG_RUSENG)
+                	        {
+                        	    int         i,j,n;
+	                            double      s;
+        	                    CSTR_line   lin_ruseng;
 
-                            n = CSTR_GetMaxNumber();
-                            for(s=0.0, i=1;i<=n;i++)
-                            {
-                                lin_ruseng = CSTR_GetLineHandle(i, 1);
-                                s += portion_of_rus_letters(lin_ruseng);
-                            }
-                            if( n )
-                                s /= (double)n;
-                            if( n && s<0.4 )
-                            {
+                	            n = CSTR_GetMaxNumber();
+				    gnLanguage=LANG_RUSSIAN;
+	                            for(s=0.0, i=1;i<=n;i++)
+        	                    {
+                	                lin_ruseng = CSTR_GetLineHandle(i, 1);
+                        	        s += portion_of_rus_letters(lin_ruseng);
+	                            }
+        	                    if( n )
+                	                s /= (double)n;
+                        	    if( n && s<0.4 )
+	                            {
 
-                                for(i=0;i<=n;i++)
-                                {
-                                    for(j=1;j<10;j++)
-                                    {
-                                        lin_ruseng = CSTR_GetLineHandle(i, j);
-                                        if( lin_ruseng  )
-                                            CSTR_DeleteLine(lin_ruseng);
-                                    }
-                                }
-                                gnLanguage = LANG_ENGLISH;
-                                rc = RecognizeSetup(gnLanguage );
-                                PRGTIME prev = StorePRGTIME(10, 60);
-                                rc = RecognizeStringsPass1();
-                                RestorePRGTIME( prev );
-                            }
-                        }
+	                                for(i=0;i<=n;i++)
+        	                        {
+                	                    for(j=1;j<10;j++)
+                        	            {
+                                	        lin_ruseng = CSTR_GetLineHandle(i, j);
+                                        	if( lin_ruseng  )
+	                                            CSTR_DeleteLine(lin_ruseng);
+        	                            }
+                	                }
+                        	        gnLanguage = LANG_ENGLISH;
+                                	rc = RecognizeSetup(gnLanguage );
+ 	                                PRGTIME prev = StorePRGTIME(10, 60);
+        	                        rc = RecognizeStringsPass1();
+                	                RestorePRGTIME( prev );
+                         	   }
+    	                    }
+ 
 						if(RSTR_NeedPass2())
 						{
 							PRGTIME prev = StorePRGTIME(60, 85);

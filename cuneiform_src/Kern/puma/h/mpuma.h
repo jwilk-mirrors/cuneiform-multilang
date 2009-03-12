@@ -247,7 +247,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     EXTERN Bool32                   gneed_clean_line                VAL(FALSE);
     EXTERN Bool32                   gKillVSLComponents              VAL(TRUE);
     EXTERN Word8  gnSpecialProject			VAL(0);
-
+	 EXTERN Bool32  						gnMultiLang			VAL(FALSE);
+	 EXTERN int  						gnSecondLanguage			VAL(0);
     //allex
     #ifdef _DEBUG
 #ifdef _MSC_VER

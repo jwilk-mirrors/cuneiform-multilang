@@ -176,7 +176,8 @@ enum PUMA_EXPORT_ENTRIES
 		PUMA_FNPUMA_SaveToMemory,
         PUMA_FNPUMA_GetSpecialBuffer,
         PUMA_FNPUMA_SetSpecialProject,
-		PUMA_FNPUMA_XGetTemplate
+		PUMA_FNPUMA_XGetTemplate,
+		PUMA_FNPUMA_SetMultiLang
 } ;
 
 Bool32	LPUMA_Load( char * lpPath );
@@ -266,6 +267,7 @@ DEC_FUN(Bool32, PUMA_XOpenClbk,(PUMAIMAGECALLBACK CallBack,const char * lpFileNa
 DEC_FUN(Word32, PUMA_SaveToMemory,(Handle hEdPage, Int32 lnFormat, Int32 lnCode, char * lpMem, Word32 size ));
 DEC_FUN(void ,	PUMA_GetSpecialBuffer,(char * szResult,Int32 *nResultLength));
 DEC_FUN(Bool32,	PUMA_SetSpecialProject,(Word8 nSpecPrj));
+DEC_FUN(Bool32, PUMA_SetMultiLang,(int nSecondLanguage));
 
 #undef DEC_FUN
 // Languages codes
