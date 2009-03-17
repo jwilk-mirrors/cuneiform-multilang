@@ -84,6 +84,75 @@ Bool32 PUMA_Save(Handle hEdPage, const char * lpOutFileName, Int32 lnFormat, Int
 double portion_of_rus_letters(CSTR_line lin_ruseng);
 
 
+int count_words(CSTR_line lin) 
+{
+    CSTR_rast       rast=CSTR_GetFirstRaster(lin);
+	bool wb = true;
+	int wc = 0;
+    for(rast = CSTR_GetNext(rast);rast;rast=CSTR_GetNext(rast))
+	{
+		if (rast->vers) {
+			if (rast->vers->Alt[0].Code[0] == ' ')
+				wb = true;
+			else
+				if (wb)
+				{
+					wb = false;
+					wc++;
+				}
+		} else return 0;
+	}
+	return wc;
+}
+
+CSTR_rast goto_next_start(CSTR_rast rast) 
+{
+    bool bp = false;
+	while (rast)
+	{
+		if (rast->vers->Alt[0].Code[0] == ' ')
+			bp = true;
+		else
+			if (bp)
+				return rast;
+		rast=CSTR_GetNext(rast);
+	}
+	return (CSTR_rast)0;
+}
+
+void mix_lines(CSTR_line ruseng, CSTR_line local)
+{
+	int countre = count_words(ruseng);
+	if ((countre != count_words(local))||(!countre))
+		return;
+    CSTR_rast    rastre=CSTR_GetFirstRaster(ruseng);
+	CSTR_rast    rastrl=CSTR_GetFirstRaster(local);
+	rastre = CSTR_GetNext(rastre);
+	rastrl = CSTR_GetNext(rastrl);
+	while (rastre && rastrl)
+	{
+		if (rastre->vers->Alt[0].Code[0] == ' ') 
+		{
+			rastre = goto_next_start(rastre);
+			continue;
+		}
+		if (rastrl->vers->Alt[0].Code[0] == ' ')
+		{
+			rastrl = goto_next_start(rastrl);
+			continue;
+		}
+		if (rastre->attr.language==LANG_RUSSIAN)
+		{
+			rastre = goto_next_start(rastre);
+			rastrl = goto_next_start(rastrl);
+			continue;
+		}
+		memcpy((void *)&(rastre->vers->Alt[0]), (void *)&(rastrl->vers->Alt[0]), sizeof(rastrl->vers->Alt[0]));
+		rastre = CSTR_GetNext(rastre);
+		rastrl = CSTR_GetNext(rastrl);
+	}
+}
+
 static Bool32 rblockProgressStep(Word32 perc)
 {
 	return ProgressStep(2,NULL,perc);
@@ -335,7 +404,7 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 		 	RSTR_Options opt={0};
 			opt.pageSkew2048 = info.Incline2048;
 			
-			CSTR_line lin_out,lin_in;
+			CSTR_line lin_out, lin_out1, lin_in;
 			if(!ProgressStep(2,NULL,i*100/count))
 				rc = FALSE;
 
@@ -375,8 +444,8 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 			CSTR_DeleteLine(lin_out);
 		
 //			printf("prl %i\n", (int)(prl*100));
-			if (prl >  0.5)
-				opt.language = LANG_RUSSIAN;
+			if (prl >  0.3)
+				opt.language = LANG_RUSENG;
 			else
 				opt.language = gnSecondLanguage;
 			//printf("sl %i\n", gnSecondLanguage);
@@ -399,6 +468,17 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 			}
 			}
 			*/
+			if (opt.language == LANG_RUSENG)
+			{
+				opt.language = gnSecondLanguage;
+				//printf("sl %i\n", gnSecondLanguage);
+				RSTR_SetOptions (&opt);
+				lin_out1 = CSTR_NewLine(i, CSTR_LINVERS_ENG, -1);
+				RSTR_Recog(lin_in, lin_out1);
+				mix_lines(lin_out, lin_out1);
+				CSTR_DeleteLine(lin_out1);				
+			}
+
 
 #ifdef _USE_REF_    // Nick 23.05.2001
 			{
