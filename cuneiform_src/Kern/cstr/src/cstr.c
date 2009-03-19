@@ -380,10 +380,10 @@ CSTR_attr       lattr;
 CSTR_rast       newdn,dn;
 
 c=CSTR_GetNextRaster (dest_begin,CSTR_f_all);
-while (c != dest_end) 
+while ((c != dest_end)&&c) 
 	c = CSTR_DelRaster(c);
-CSTR_DelRaster(dest_end);
-c=start;
+if (c)
+	CSTR_DelRaster(c);
 cnew = dest_begin;
 for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
     {
@@ -403,7 +403,7 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
         if( !CSTR_StoreScale(cnew,comp->scale) )
          return FALSE;
         }
-
+    
     if( (CSTR_cell*)c->next_down )
         { //  start of bracnh
         newdn=cnew;
@@ -413,40 +413,40 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
         { // end of branch
         cstr_copy_branch(dn,c,newdn,cnew);
         }
-
     }
  
-    if( CSTR_GetAttr (c, &attr) 
-	&& CSTR_GetImage (c, (Word8 *)&rs, CSTR_TYPE_IMAGE_RS) 
-	&& CSTR_GetCollectionUni(c,&vr) 
-	&&(comp=CSTR_GetComp(c))!=NULL )
-        {
-        if( !(cnew=CSTR_InsertRaster (cnew)))
-            return FALSE;
-        if( !CSTR_SetAttr (cnew, &attr) )
-            return FALSE;
-        if( !CSTR_StoreRaster (cnew, &rs) )
-            return FALSE;
-        if( !CSTR_StoreCollectionUni (cnew, &vr) )
-            return FALSE;
-        if( !CSTR_StoreScale(cnew,comp->scale) )
-         return FALSE;
-        }
+    if (c) 
+    {
+	if( CSTR_GetAttr (c, &attr) 
+		&& CSTR_GetImage (c, (Word8 *)&rs, CSTR_TYPE_IMAGE_RS) 
+		&& CSTR_GetCollectionUni(c,&vr) 
+		&&(comp=CSTR_GetComp(c))!=NULL )
+	{
+		if( !(cnew=CSTR_InsertRaster (cnew)))
+			return FALSE;
+		if( !CSTR_SetAttr (cnew, &attr) )
+			return FALSE;
+		if( !CSTR_StoreRaster (cnew, &rs) )
+			return FALSE;
+		if( !CSTR_StoreCollectionUni (cnew, &vr) )
+			return FALSE;
+		if( !CSTR_StoreScale(cnew,comp->scale) )
+			return FALSE;
+	}
 
-    if( (CSTR_cell*)c->next_down )
+	if( (CSTR_cell*)c->next_down )
         { //  start of bracnh
-        newdn=cnew;
-        dn=c;
+		newdn=cnew;
+		dn=c;
         }
-    if( (CSTR_cell*)c->prev_down )
+	if( (CSTR_cell*)c->prev_down )
         { // end of branch
-        cstr_copy_branch(dn,c,newdn,cnew);
+		cstr_copy_branch(dn,c,newdn,cnew);
         }
-
+    }
 
     CSTR_DelRaster(dest_begin);
-
-return TRUE;
+    return TRUE;
 }
 
 

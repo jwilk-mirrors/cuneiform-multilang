@@ -397,10 +397,14 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 			{
 			
 				//CSTR_DeleteLine(lin_out);
+				//lin_out = CSTR_NewLine(i+count, CSTR_LINVERS_MAINOUT, -1);
+				CSTR_attr       lattr;
+				CSTR_GetLineAttr(lin_out,&lattr);
 				CSTR_EmptyLine(lin_out);
+				lattr.language = gnSecondLanguage;
+				CSTR_SetLineAttr(lin_out,&lattr);
 				opt.language = gnSecondLanguage;
 				RSTR_SetOptions (&opt);
-				//lin_out = CSTR_NewLine(i+count, CSTR_LINVERS_MAINOUT, -1);
 				if (!RSTR_Recog(lin_in, lin_out)) // Recognition
 				{
 					SetReturnCode_puma(RSTR_GetReturnCode());

@@ -24,7 +24,7 @@ typedef pSPWord SPWords[1024];
 
 void copy_text(SPWord * word)
 {
-	word->text = (Word8 *) malloc(word->wlen*sizeof(Word8));
+	word->text = (Word8 *) malloc((word->wlen + 1)*sizeof(Word8));
 	CSTR_rast rast = word->begin;
 	for (int i = 0; (i < word->wlen)&&rast; i++)
 	{
@@ -32,6 +32,7 @@ void copy_text(SPWord * word)
 			word->text[i] = rast->vers->Alt[0].Code[0];
 		rast=CSTR_GetNext(rast);
 	}
+	word->text[word->wlen] = 0;
 }
 
 int make_tokens(CSTR_line line, SPWord ** words)
@@ -71,8 +72,8 @@ int make_tokens(CSTR_line line, SPWord ** words)
 				else
 				{
 					lt++;
-					pre = rast;
 				}
+				pre = rast;
 			}
 		} 
 	}
@@ -107,8 +108,12 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 	if ((recount == lcount) && lcount)
 	{
 		for(int i = 0; i < recount; i++)
+		{
 			if(rewords[i]->is_latin)
+			{
 				CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
+			}
+		}
 	}
 	free_tokens(rewords);
 	free_tokens(rwords);
