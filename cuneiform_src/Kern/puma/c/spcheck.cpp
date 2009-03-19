@@ -1,0 +1,189 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "spcheck.h"
+#include "specprj.h"
+#include "ligas.h"
+#include "crling.h"
+
+
+typedef struct _SPWord
+{
+	Bool32 is_latin;
+	CSTR_rast begin, end;
+	Word8 * text;
+	int wlen;
+} SPWord;
+
+
+typedef SPWord * pSPWord;
+
+typedef pSPWord SPWords[1024];
+
+
+void copy_text(SPWord * word)
+{
+	word->text = (Word8 *) malloc(word->wlen*sizeof(Word8));
+	CSTR_rast rast = word->begin;
+	for (int i = 0; (i < word->wlen)&&rast; i++)
+	{
+		if (rast->vers) 
+			word->text[i] = rast->vers->Alt[0].Code[0];
+		rast=CSTR_GetNext(rast);
+	}
+}
+
+int make_tokens(CSTR_line line, SPWord ** words)
+{
+	CSTR_rast       rast=CSTR_GetFirstRaster(line);
+	CSTR_rast pre;
+	bool wb = true;
+	int wc = 0, lt;
+	for(rast = CSTR_GetNext(rast);rast;rast=CSTR_GetNext(rast))
+	{
+		if(wc > 1022) break;
+		if (rast->vers) {
+			if (strchr(",.():;!?\"\' %", rast->vers->Alt[0].Code[0]))
+			{
+				if(!wb) 
+				{
+					wb = true;
+					words[wc-1]->end = pre;
+					words[wc-1]->wlen = lt;
+					copy_text(words[wc-1]);
+				}
+			}  
+			else
+			{
+				if (wb)
+				{
+					wb = false;
+					words[wc] = new SPWord;
+					words[wc]->begin = rast;
+					if (rast->attr.language==LANG_RUSSIAN)
+						words[wc]->is_latin = FALSE;  
+					else
+						words[wc]->is_latin = TRUE;
+					lt = 1;
+					wc++;
+				}
+				else
+				{
+					lt++;
+					pre = rast;
+				}
+			}
+		} 
+	}
+	if(!wb) 
+	{
+		wb = true;
+		words[wc-1]->end = pre;
+		words[wc-1]->wlen = lt;
+		copy_text(words[wc-1]);
+	}
+	words[wc] = (SPWord *) 0;
+	return wc;
+}
+
+void free_tokens(SPWord ** words)
+{
+	 for (int i = 0; words[i]; i++)
+	 {
+		if (words[i]->wlen > 0)
+			free(words[i]->text);
+		delete words[i];
+	 }
+}
+ 
+void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
+{
+	SPWords rewords, lwords, rwords;
+	int recount, lcount, rcount;
+	recount = make_tokens(ruseng, rewords);
+	rcount = make_tokens(rus, rwords);
+	lcount = make_tokens(local, lwords);
+	if ((recount == lcount) && lcount)
+	{
+		for(int i = 0; i < recount; i++)
+			if(rewords[i]->is_latin)
+				CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
+	}
+	free_tokens(rewords);
+	free_tokens(rwords);
+	free_tokens(lwords);
+}
+
+/*
+int count_words(CSTR_line lin) 
+{
+    CSTR_rast       rast=CSTR_GetFirstRaster(lin);
+	bool wb = true;
+	int wc = 0;
+    for(rast = CSTR_GetNext(rast);rast;rast=CSTR_GetNext(rast))
+	{
+		if (rast->vers) {
+			if (rast->vers->Alt[0].Code[0] == ' ')
+				wb = true;
+			else
+				if (wb)
+				{
+					wb = false;
+					wc++;
+				}
+		} else return 0;
+	}
+	return wc;
+}
+
+CSTR_rast goto_next_start(CSTR_rast rast) 
+{
+    bool bp = false;
+	while (rast)
+	{
+		if (rast->vers->Alt[0].Code[0] == ' ')
+			bp = true;
+		else
+			if (bp)
+				return rast;
+		rast=CSTR_GetNext(rast);
+	}
+	return (CSTR_rast)0;
+}
+
+void mix_lines(CSTR_line ruseng, CSTR_line local)
+{
+	int countre = count_words(ruseng);
+	if ((countre != count_words(local))||(!countre))
+		return;
+    CSTR_rast    rastre=CSTR_GetFirstRaster(ruseng);
+	CSTR_rast    rastrl=CSTR_GetFirstRaster(local);
+	rastre = CSTR_GetNext(rastre);
+	rastrl = CSTR_GetNext(rastrl);
+	while (rastre && rastrl)
+	{
+		if (rastre->vers->Alt[0].Code[0] == ' ') 
+		{
+			rastre = goto_next_start(rastre);
+			continue;
+		}
+		if (rastrl->vers->Alt[0].Code[0] == ' ')
+		{
+			rastrl = goto_next_start(rastrl);
+			continue;
+		}
+		if (rastre->attr.language==LANG_RUSSIAN)
+		{
+			rastre = goto_next_start(rastre);
+			rastrl = goto_next_start(rastrl);
+			continue;
+		}
+		memcpy((void *)&(rastre->vers->Alt[0]), (void *)&(rastrl->vers->Alt[0]), sizeof(rastrl->vers->Alt[0]));
+		rastre = CSTR_GetNext(rastre);
+		rastrl = CSTR_GetNext(rastrl);
+	}
+}
+
+
+*/

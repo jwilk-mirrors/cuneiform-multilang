@@ -10,9 +10,10 @@ c/out.cpp
 c/partlayout.cpp 
 c/partrecog.cpp 
 c/snp_sjtl.c 
+c/spcheck.cpp
 main/mymem.cpp 
 main/puma.cpp 
-main/dll.cpp 
+main/dll.cpp
 )
 set_property(TARGET puma PROPERTY COMPILE_DEFINITIONS __PUMA__)
 

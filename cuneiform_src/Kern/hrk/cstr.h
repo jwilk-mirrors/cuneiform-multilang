@@ -259,6 +259,12 @@ CSTR_FUNC(Bool32)           CSTR_SetAttr (CSTR_rast  curr_raster, CSTR_rast_attr
 // 23   CSTR_FNCOPYLINE     скопировать содержимое строки
 typedef Bool32  (*FNCSTR_CopyLine)(CSTR_line    trg,CSTR_line   src);
 CSTR_FUNC(Bool32)       CSTR_CopyLine (CSTR_line        trg,CSTR_line   src);
+CSTR_FUNC(Bool32)       CSTR_ReplaceWord(CSTR_rast dest_begin, CSTR_rast dest_end, CSTR_rast src_begin, CSTR_rast src_end);
+
+CSTR_FUNC(Bool32)       CSTR_EmptyLine(CSTR_line lin);
+
+CSTR_FUNC(Bool32)       CSTR_SetNewLineNumber (CSTR_line  linel, int new_number);
+
 // 24   CSTR_FNGETLNHND     дать хендл строки по номеру и версии
 typedef CSTR_line   (*FNCSTR_GetLineHandle)(Int32 line_no, Int32 version);
 CSTR_FUNC(CSTR_line )   CSTR_GetLineHandle (Int32 line_no, Int32 version);

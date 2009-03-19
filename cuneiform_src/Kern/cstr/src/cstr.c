@@ -368,6 +368,88 @@ for(c=CSTR_GetNextRaster (start,CSTR_f_all); c && c!=stop; c=CSTR_GetNextRaster 
 return TRUE;
 }
 
+CSTR_FUNC(Bool32)      CSTR_ReplaceWord(CSTR_rast dest_begin, CSTR_rast dest_end, CSTR_rast src_begin, CSTR_rast src_end)
+{
+CSTR_rast       start   = src_begin, stop = src_end, c;
+CSTR_rast_attr  attr;
+CSTR_rast cnew;
+RecRaster       rs;
+UniVersions     vr;
+CCOM_comp    *  comp;
+CSTR_attr       lattr;
+CSTR_rast       newdn,dn;
+
+c=CSTR_GetNextRaster (dest_begin,CSTR_f_all);
+while (c != dest_end) 
+	c = CSTR_DelRaster(c);
+CSTR_DelRaster(dest_end);
+c=start;
+cnew = dest_begin;
+for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
+    {
+    if( CSTR_GetAttr (c, &attr) 
+	&& CSTR_GetImage (c, (Word8 *)&rs, CSTR_TYPE_IMAGE_RS) 
+	&& CSTR_GetCollectionUni(c,&vr) 
+	&&(comp=CSTR_GetComp(c))!=NULL )
+        {
+        if( !(cnew=CSTR_InsertRaster (cnew)))
+            return FALSE;
+        if( !CSTR_SetAttr (cnew, &attr) )
+            return FALSE;
+        if( !CSTR_StoreRaster (cnew, &rs) )
+            return FALSE;
+        if( !CSTR_StoreCollectionUni (cnew, &vr) )
+            return FALSE;
+        if( !CSTR_StoreScale(cnew,comp->scale) )
+         return FALSE;
+        }
+
+    if( (CSTR_cell*)c->next_down )
+        { //  start of bracnh
+        newdn=cnew;
+        dn=c;
+        }
+    if( (CSTR_cell*)c->prev_down )
+        { // end of branch
+        cstr_copy_branch(dn,c,newdn,cnew);
+        }
+
+    }
+ 
+    if( CSTR_GetAttr (c, &attr) 
+	&& CSTR_GetImage (c, (Word8 *)&rs, CSTR_TYPE_IMAGE_RS) 
+	&& CSTR_GetCollectionUni(c,&vr) 
+	&&(comp=CSTR_GetComp(c))!=NULL )
+        {
+        if( !(cnew=CSTR_InsertRaster (cnew)))
+            return FALSE;
+        if( !CSTR_SetAttr (cnew, &attr) )
+            return FALSE;
+        if( !CSTR_StoreRaster (cnew, &rs) )
+            return FALSE;
+        if( !CSTR_StoreCollectionUni (cnew, &vr) )
+            return FALSE;
+        if( !CSTR_StoreScale(cnew,comp->scale) )
+         return FALSE;
+        }
+
+    if( (CSTR_cell*)c->next_down )
+        { //  start of bracnh
+        newdn=cnew;
+        dn=c;
+        }
+    if( (CSTR_cell*)c->prev_down )
+        { // end of branch
+        cstr_copy_branch(dn,c,newdn,cnew);
+        }
+
+
+    CSTR_DelRaster(dest_begin);
+
+return TRUE;
+}
+
+
 Bool32 cstr_delete_branch(CSTR_cell   *cc)
 {
 CSTR_cell   *c, *e;
@@ -460,6 +542,13 @@ if( line==(CSTR_head *)0 )
 attr->number  =   line->number            ;
 attr->version =   line->version           ;
 return TRUE;
+}
+
+CSTR_FUNC(Bool32)               CSTR_SetNewLineNumber (CSTR_line  linel, int new_number)
+{
+	CSTR_head *line = (CSTR_head *)linel;
+	line->number = new_number;
+	return TRUE;
 }
 
 CSTR_FUNC(Bool32)               CSTR_SetLineAttr (CSTR_line      linel,CSTR_attr * attr)
@@ -1880,6 +1969,13 @@ CSTR_head       *line=(CSTR_head        *)ln;
 return line->container;
 }
 
+CSTR_FUNC(Bool32) CSTR_EmptyLine(CSTR_line lin)
+{
+	CSTR_rast start = CSTR_GetFirstRaster (lin),stop = CSTR_GetLastRaster (lin), c;
+	for(c=CSTR_GetNextRaster (start,CSTR_f_all);c&&c!=stop;c = CSTR_DelRaster(c));
+	return TRUE;
+}
+
 CSTR_FUNC(Bool32) CSTR_ClearLine(CSTR_line lin,Int16 left, Int16 right)
 {
 CSTR_rast start = CSTR_GetFirstRaster (lin),stop = CSTR_GetLastRaster (lin), c;
@@ -2011,7 +2107,7 @@ CSTR_cell  *cell;
 if( line==(CSTR_line)0)
     {
     wLowRC=CSTR_ERR_NULL       ;
-    return 0;
+    return (CSTR_line)0;
     }
 
 for(rast=CSTR_GetNext(CSTR_GetFirstRaster(line));rast;rast=CSTR_GetNext(rast))
@@ -2036,7 +2132,7 @@ CSTR_cell  *cell;
 if( line==(CSTR_line)0)
     {
     wLowRC=CSTR_ERR_NULL       ;
-    return 0;
+    return (CSTR_line)0;
     }
 
 for(rast=CSTR_GetNext(CSTR_GetFirstRaster(line));rast;rast=CSTR_GetNext(rast))
