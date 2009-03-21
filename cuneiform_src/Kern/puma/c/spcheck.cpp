@@ -119,14 +119,25 @@ Bool32 all_words_local(SPWord ** words)
 	 for (int i = 0; words[i]; i++)
 	 {
 		Int32 poc;
-		printf("text^ %s\n", words[i]->text);
 		RLING_CheckWord((PInt8) words[i]->text, &poc);
 		if ((!poc) && (!fine_check(words[i])) && (!is_digit(words[i])))
 			return FALSE;
-		 printf("Icount\n");
 	 }
 	 return TRUE;
 }
+
+Bool32 no_russian_words(SPWord ** words)
+{
+	 for (int i = 0; words[i]; i++)
+	 {
+		Int32 poc;
+		RLING_CheckSecWord((PInt8) words[i]->text, &poc);
+		if (poc)
+			return FALSE;
+	 }
+	 return TRUE;
+}
+
 
 
 Bool32 load_dicts(int second_lang)
@@ -154,6 +165,7 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 	int recount, lcount, rcount;
 	recount = make_tokens(ruseng, rewords);
 	lcount = make_tokens(local, lwords);
+	rcount = make_tokens(rus, rwords);
 	if (all_words_local(lwords))
 	{
 		int count = recount < lcount ? recount : lcount;
@@ -162,9 +174,9 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 		CSTR_ReplaceWord(rewords[count-1]->begin, rewords[recount -1]->end, lwords[count-1]->begin, lwords[lcount-1]->end);
 		free_tokens(rewords);
 		free_tokens(lwords);
+		free_tokens(rwords);
 		return;
 	}
-	rcount = make_tokens(rus, rwords);
 	if ((recount == lcount) && lcount)
 	{
 		for(int i = 0; i < recount; i++)
