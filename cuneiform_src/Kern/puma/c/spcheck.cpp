@@ -74,7 +74,7 @@ int make_tokens(CSTR_line line, SPWord ** words)
 				}
 				else
 				{
-					words[wc]->wlen++;
+					words[wc-1]->wlen++;
 				}
 				pre = rast;
 			}
@@ -99,19 +99,72 @@ void free_tokens(SPWord ** words)
 	 }
 }
 
-Bool32 load_dicts()
+Bool32 is_digit(SPWord * word) 
 {
-	printf("RSTR_GetLingPath(): %s\n", RSTR_GetLingPath());
-	return RLINGS_LoadDictonary(gnLanguage, RSTR_GetLingPath()) && RLING_LoadSecDictonary(LANG_RUSSIAN, RSTR_GetLingPath());
+	for(int i = 0; i < word->wlen; i++)
+		if ((word->text[i] < '0')||(word->text[i] > '9'))
+			return FALSE;
+		return TRUE;
+}
+
+Bool32 fine_check(SPWord * word)
+{
+	if ((word->wlen == 1) && strchr("dlj", word->text[0]))
+			 return TRUE;
+	return FALSE;
+}
+
+Bool32 all_words_local(SPWord ** words)
+{
+	 for (int i = 0; words[i]; i++)
+	 {
+		Int32 poc;
+		printf("text^ %s\n", words[i]->text);
+		RLING_CheckWord((PInt8) words[i]->text, &poc);
+		if ((!poc) && (!fine_check(words[i])) && (!is_digit(words[i])))
+			return FALSE;
+		 printf("Icount\n");
+	 }
+	 return TRUE;
+}
+
+
+Bool32 load_dicts(int second_lang)
+{
+	char * lp = GetModulePath();
+	if (!RLING_IsDictonaryAvailable(second_lang, (PInt8)lp))
+	{
+		 return FALSE;
+	}
+	if (!RLING_IsDictonaryAvailable(LANG_RUSSIAN, (PInt8)lp)) 
+	{
+		 return FALSE;
+	}
+	RLING_UnloadDictonary();
+	RLING_UnloadSecDictonary();
+	return RLING_LoadDictonary(second_lang, (PInt8)lp) && RLING_LoadSecDictonary(LANG_RUSSIAN, (PInt8)lp);
+	return FALSE;
 }
  
 void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 {
+	if(!load_dicts(LANG_FRENCH))
+		 printf("WARNING: Dicitionaries not loaded\n");
 	SPWords rewords, lwords, rwords;
 	int recount, lcount, rcount;
 	recount = make_tokens(ruseng, rewords);
-	rcount = make_tokens(rus, rwords);
 	lcount = make_tokens(local, lwords);
+	if (all_words_local(lwords))
+	{
+		int count = recount < lcount ? recount : lcount;
+		for (int i = 0; i < count - 1; i++)
+			CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
+		CSTR_ReplaceWord(rewords[count-1]->begin, rewords[recount -1]->end, lwords[count-1]->begin, lwords[lcount-1]->end);
+		free_tokens(rewords);
+		free_tokens(lwords);
+		return;
+	}
+	rcount = make_tokens(rus, rwords);
 	if ((recount == lcount) && lcount)
 	{
 		for(int i = 0; i < recount; i++)
@@ -122,11 +175,42 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 					break;
 			}
 		}
-	}
-	free_tokens(rewords);
-	if(load_dicts())
-		 printtf("dicts loaded\n");
+		free_tokens(rewords);
+		 recount = make_tokens(ruseng, rewords);
+		for(int i = 0; i < recount; i++)
+		{
+			if(!rewords[i]->is_latin)
+			{
+				Int32 poc;
+				RLING_CheckSecWord((PInt8) rewords[i]->text, &poc) ;
+				if(!poc) 
+				{
+					RLING_CheckWord((PInt8) lwords[i]->text, &poc);
+					if(poc)
+					{  
+						CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
+					}
+				}
+			} 
+		}
 
+	}
+	if ((recount == rcount) && rcount)
+	for(int i = 0; i < recount; i++)
+		if(rewords[i]->is_latin)
+		{
+			Int32 poc;
+			RLING_CheckWord((PInt8) rewords[i]->text, &poc);
+			if(!poc)
+			{
+				RLING_CheckSecWord((PInt8) rwords[i]->text, &poc);
+				if(poc)
+				{
+					CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, rwords[i]->begin, rwords[i]->end);
+				}
+			}
+		} 
+	free_tokens(rewords);
 	free_tokens(rwords);
 	free_tokens(lwords);
 }

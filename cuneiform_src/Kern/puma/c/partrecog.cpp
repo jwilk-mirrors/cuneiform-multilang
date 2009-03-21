@@ -375,7 +375,7 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 			}
 			double prl = portion_of_rus_letters(lin_out);
 						
-			if (prl >  0.3)
+			if (prl >  0.06)
 			{
 //				CSTR_EmptyLine(lin_out);
 //				CSTR_DeleteLine(lin_out);
