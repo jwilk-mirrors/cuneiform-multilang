@@ -26,10 +26,14 @@ void copy_text(SPWord * word)
 {
 	word->text = (Word8 *) malloc((word->wlen + 1)*sizeof(Word8));
 	CSTR_rast rast = word->begin;
-	for (int i = 0; (i < word->wlen)&&rast; i++)
-	{
+	int i = 0;
+	while ((i < word->wlen) && rast)
+	{  
 		if (rast->vers) 
+		{
 			word->text[i] = rast->vers->Alt[0].Code[0];
+			i++;
+		}
 		rast=CSTR_GetNext(rast);
 	}
 	word->text[word->wlen] = 0;
@@ -40,7 +44,7 @@ int make_tokens(CSTR_line line, SPWord ** words)
 	CSTR_rast       rast=CSTR_GetFirstRaster(line);
 	CSTR_rast pre;
 	bool wb = true;
-	int wc = 0, lt;
+	int wc = 0;
 	for(rast = CSTR_GetNext(rast);rast;rast=CSTR_GetNext(rast))
 	{
 		if(wc > 1022) break;
@@ -51,7 +55,6 @@ int make_tokens(CSTR_line line, SPWord ** words)
 				{
 					wb = true;
 					words[wc-1]->end = pre;
-					words[wc-1]->wlen = lt;
 					copy_text(words[wc-1]);
 				}
 			}  
@@ -66,12 +69,12 @@ int make_tokens(CSTR_line line, SPWord ** words)
 						words[wc]->is_latin = FALSE;  
 					else
 						words[wc]->is_latin = TRUE;
-					lt = 1;
+					words[wc]->wlen = 1;
 					wc++;
 				}
 				else
 				{
-					lt++;
+					words[wc]->wlen++;
 				}
 				pre = rast;
 			}
@@ -79,9 +82,7 @@ int make_tokens(CSTR_line line, SPWord ** words)
 	}
 	if(!wb) 
 	{
-		wb = true;
 		words[wc-1]->end = pre;
-		words[wc-1]->wlen = lt;
 		copy_text(words[wc-1]);
 	}
 	words[wc] = (SPWord *) 0;
@@ -97,6 +98,12 @@ void free_tokens(SPWord ** words)
 		delete words[i];
 	 }
 }
+
+Bool32 load_dicts()
+{
+	printf("RSTR_GetLingPath(): %s\n", RSTR_GetLingPath());
+	return RLINGS_LoadDictonary(gnLanguage, RSTR_GetLingPath()) && RLING_LoadSecDictonary(LANG_RUSSIAN, RSTR_GetLingPath());
+}
  
 void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 {
@@ -111,11 +118,15 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 		{
 			if(rewords[i]->is_latin)
 			{
-				CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
+				if (!CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end))
+					break;
 			}
 		}
 	}
 	free_tokens(rewords);
+	if(load_dicts())
+		 printtf("dicts loaded\n");
+
 	free_tokens(rwords);
 	free_tokens(lwords);
 }

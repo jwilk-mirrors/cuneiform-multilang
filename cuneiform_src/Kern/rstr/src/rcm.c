@@ -499,6 +499,11 @@ else //if( language!=LANG_DIG )
 return TRUE;
 }
 
+Word8 * RSTR_GetLingPath()
+{
+	return lnOcrLingPath;
+}
+
 
 static void  SetAlphabet(
                      char     char_tbl_put_to[] // char string

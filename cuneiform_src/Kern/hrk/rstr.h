@@ -262,6 +262,8 @@ RSTR_FUNC(Bool32) RSTR_ChangeLineNumber(Int32 add);
 typedef Bool32 (*FNRSTR_SetSpecPrj)(Word8 nSpecPrj);
 RSTR_FUNC(Bool32) RSTR_SetSpecPrj(Word8 nSpecPrj);
 
+RSTR_FUNC(Word8 *) RSTR_GetLingPath();
+
 //поделенный на части первый проход
 RSTR_FUNC(Bool32)  RSTRRecognizeMain(CSTR_line lin, CSTR_line lino);
 RSTR_FUNC(void) RSTR_Save2CTB(CSTR_line lino,Int32 type, Int16 line_num);

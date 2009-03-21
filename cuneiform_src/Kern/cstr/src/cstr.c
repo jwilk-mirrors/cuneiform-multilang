@@ -379,11 +379,14 @@ CCOM_comp    *  comp;
 CSTR_attr       lattr;
 CSTR_rast       newdn,dn;
 
-c=CSTR_GetNextRaster (dest_begin,CSTR_f_all);
-while ((c != dest_end)&&c) 
-	c = CSTR_DelRaster(c);
-if (c)
-	CSTR_DelRaster(c);
+if (dest_begin != dest_end)
+{
+	c=CSTR_GetNextRaster (dest_begin,CSTR_f_all);
+	while ((c != dest_end)&&c) 
+		c = CSTR_DelRaster(c);
+	if (c)
+		CSTR_DelRaster(c);
+}
 cnew = dest_begin;
 for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
     {
