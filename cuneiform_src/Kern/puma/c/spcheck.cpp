@@ -109,7 +109,7 @@ Bool32 is_digit(SPWord * word)
 
 Bool32 fine_check(SPWord * word)
 {
-	if ((word->wlen == 1) && strchr("dlj", word->text[0]))
+	if ((word->wlen == 1) && strchr("dljmtsnDLJMTSN", word->text[0]))
 			 return TRUE;
 	return FALSE;
 }
@@ -124,6 +124,25 @@ Bool32 all_words_local(SPWord ** words)
 			return FALSE;
 	 }
 	 return TRUE;
+}
+
+void replace_line(CSTR_line dest, CSTR_line src)
+{
+	CSTR_rast beg = CSTR_GetFirstRaster(dest);
+	CSTR_rast end = CSTR_GetLastRaster(dest);
+	CSTR_rast r = CSTR_GetNext(beg), rn;
+	while ((r != end) && r)
+		r = CSTR_DelRaster(r);
+	rn = beg;
+	CSTR_rast beg2 = CSTR_GetFirstRaster(src);
+	CSTR_rast end2 = CSTR_GetLastRaster(src);
+	r = CSTR_GetNext(beg2);
+	while((r!=end2)&&r)
+	{
+		rn = CSTR_InsertRaster(rn);
+		CSTR_CopyRaster(rn, r);
+		r = CSTR_GetNext(r);
+	}
 }
 
 Bool32 no_russian_words(SPWord ** words)
@@ -159,19 +178,21 @@ Bool32 load_dicts(int second_lang)
  
 void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 {
-	if(!load_dicts(LANG_FRENCH))
+	if(!load_dicts(gnSecondLanguage))
 		 printf("WARNING: Dicitionaries not loaded\n");
 	SPWords rewords, lwords, rwords;
 	int recount, lcount, rcount;
 	recount = make_tokens(ruseng, rewords);
+	
 	lcount = make_tokens(local, lwords);
 	rcount = make_tokens(rus, rwords);
 	if (all_words_local(lwords))
 	{
-		int count = recount < lcount ? recount : lcount;
-		for (int i = 0; i < count - 1; i++)
-			CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
-		CSTR_ReplaceWord(rewords[count-1]->begin, rewords[recount -1]->end, lwords[count-1]->begin, lwords[lcount-1]->end);
+		replace_line(ruseng, local);
+		CSTR_attr       lattr;
+		CSTR_GetLineAttr(ruseng,&lattr);
+		lattr.language = gnSecondLanguage;
+		CSTR_SetLineAttr(ruseng,&lattr);
 		free_tokens(rewords);
 		free_tokens(lwords);
 		free_tokens(rwords);
