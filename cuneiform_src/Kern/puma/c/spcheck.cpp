@@ -175,6 +175,67 @@ Bool32 load_dicts(int second_lang)
 	return RLING_LoadDictonary(second_lang, (PInt8)lp) && RLING_LoadSecDictonary(LANG_RUSSIAN, (PInt8)lp);
 	return FALSE;
 }
+
+//void replace_word(SPWord * dest, SPWord * src)
+//{
+//	CSTR_ReplaceWord(dest->begin, dest->end, src->begin, src->end);
+//}
+
+Bool32 replace_russian_if_unknown(SPWord * russian, SPWord * local)
+{
+	int poc;
+	RLING_CheckSecWord((PInt8) russian->text, &poc) ;
+	if(!poc) 
+	{
+		RLING_CheckWord((PInt8) local->text, &poc);
+		if(poc)
+		{  
+			CSTR_ReplaceWord(russian->begin, russian->end, local->begin, local->end);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+Bool32 replace_local_if_unknown(SPWord * local, SPWord * russian)
+{
+	int poc;
+	RLING_CheckWord((PInt8) local->text, &poc) ;
+	if(!poc) 
+	{
+		RLING_CheckSecWord((PInt8) russian->text, &poc);
+		if(poc)
+		{  
+			CSTR_ReplaceWord(local->begin, local->end, russian->begin, russian->end);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+
+void match_lines(SPWord ** dest, SPWord ** src)
+{
+	int destnw, srcnw;
+	for (destnw = 0; dest[destnw]; destnw++);
+	for (srcnw = 0; src[srcnw]; srcnw++);
+	int count = destnw < srcnw ? destnw : srcnw;
+	int b;
+	for (b = 0; b < count; b++)
+	{
+		if(abs(dest[b]->wlen - src[b]->wlen) <= 2)
+			replace_russian_if_unknown(dest[b], src[b]); 
+		else break;
+	}
+	for (int i = 1; i < (count - b); i++)
+	{
+		if(abs(dest[destnw - i]->wlen - src[srcnw - i]->wlen) <= 2)
+		{
+			replace_russian_if_unknown(dest[destnw - i], src[srcnw - i]); 
+		} 
+		else break;
+	}
+}
  
 void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 {
@@ -209,39 +270,25 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 			}
 		}
 		free_tokens(rewords);
-		 recount = make_tokens(ruseng, rewords);
+		recount = make_tokens(ruseng, rewords);
 		for(int i = 0; i < recount; i++)
 		{
 			if(!rewords[i]->is_latin)
 			{
-				Int32 poc;
-				RLING_CheckSecWord((PInt8) rewords[i]->text, &poc) ;
-				if(!poc) 
-				{
-					RLING_CheckWord((PInt8) lwords[i]->text, &poc);
-					if(poc)
-					{  
-						CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end);
-					}
-				}
+				replace_russian_if_unknown(rewords[i], lwords[i]); 
 			} 
 		}
 
-	}
+	} 
+	else
+		match_lines(rewords, lwords);
+	free_tokens(rewords);
+	recount = make_tokens(ruseng, rewords);
 	if ((recount == rcount) && rcount)
 	for(int i = 0; i < recount; i++)
 		if(rewords[i]->is_latin)
 		{
-			Int32 poc;
-			RLING_CheckWord((PInt8) rewords[i]->text, &poc);
-			if(!poc)
-			{
-				RLING_CheckSecWord((PInt8) rwords[i]->text, &poc);
-				if(poc)
-				{
-					CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, rwords[i]->begin, rwords[i]->end);
-				}
-			}
+			replace_local_if_unknown(rewords[i], rwords[i]);
 		} 
 	free_tokens(rewords);
 	free_tokens(rwords);
