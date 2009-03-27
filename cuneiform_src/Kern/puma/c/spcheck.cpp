@@ -176,10 +176,14 @@ Bool32 load_dicts(int second_lang)
 	return FALSE;
 }
 
-//void replace_word(SPWord * dest, SPWord * src)
-//{
-//	CSTR_ReplaceWord(dest->begin, dest->end, src->begin, src->end);
-//}
+Bool32 replace_word(SPWord * dest, SPWord * src)
+{
+	Bool32 res = CSTR_ReplaceWord(&(dest->begin), &(dest->end), src->begin, src->end);
+	if (dest->wlen > 0)
+		free(dest->text);
+	copy_text(dest);
+	return res;
+}
 
 Bool32 replace_russian_if_unknown(SPWord * russian, SPWord * local)
 {
@@ -190,11 +194,10 @@ Bool32 replace_russian_if_unknown(SPWord * russian, SPWord * local)
 		RLING_CheckWord((PInt8) local->text, &poc);
 		if(poc)
 		{  
-			CSTR_ReplaceWord(russian->begin, russian->end, local->begin, local->end);
-			return TRUE;
+			return replace_word(russian, local);
 		}
 	}
-	return FALSE;
+	return TRUE;
 }
 
 Bool32 replace_local_if_unknown(SPWord * local, SPWord * russian)
@@ -206,15 +209,14 @@ Bool32 replace_local_if_unknown(SPWord * local, SPWord * russian)
 		RLING_CheckSecWord((PInt8) russian->text, &poc);
 		if(poc)
 		{  
-			CSTR_ReplaceWord(local->begin, local->end, russian->begin, russian->end);
-			return TRUE;
+			return replace_word(local, russian);
 		}
 	}
-	return FALSE;
+	return TRUE;
 }
 
 
-void match_lines(SPWord ** dest, SPWord ** src)
+Bool32 match_lines(SPWord ** dest, SPWord ** src)
 {
 	int destnw, srcnw;
 	for (destnw = 0; dest[destnw]; destnw++);
@@ -224,17 +226,22 @@ void match_lines(SPWord ** dest, SPWord ** src)
 	for (b = 0; b < count; b++)
 	{
 		if(abs(dest[b]->wlen - src[b]->wlen) <= 2)
-			replace_russian_if_unknown(dest[b], src[b]); 
+		{
+			if (!replace_russian_if_unknown(dest[b], src[b]))
+				  return FALSE;
+		}
 		else break;
 	}
 	for (int i = 1; i < (count - b); i++)
 	{
 		if(abs(dest[destnw - i]->wlen - src[srcnw - i]->wlen) <= 2)
 		{
-			replace_russian_if_unknown(dest[destnw - i], src[srcnw - i]); 
+			if(!replace_russian_if_unknown(dest[destnw - i], src[srcnw - i]))
+				return FALSE;
 		} 
 		else break;
 	}
+	return TRUE;
 }
  
 void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
@@ -265,30 +272,45 @@ void mix_lines(CSTR_line ruseng, CSTR_line local, CSTR_line rus)
 		{
 			if(rewords[i]->is_latin)
 			{
-				if (!CSTR_ReplaceWord(rewords[i]->begin, rewords[i]->end, lwords[i]->begin, lwords[i]->end))
+				if (!replace_word(rewords[i], lwords[i]))
+				{
+					free_tokens(rewords);
+					recount = make_tokens(ruseng, rewords);
 					break;
+				}
 			}
 		}
-		free_tokens(rewords);
-		recount = make_tokens(ruseng, rewords);
 		for(int i = 0; i < recount; i++)
 		{
 			if(!rewords[i]->is_latin)
 			{
-				replace_russian_if_unknown(rewords[i], lwords[i]); 
+				
+				if(!replace_russian_if_unknown(rewords[i], lwords[i])) 
+				{
+					free_tokens(rewords);
+					recount = make_tokens(ruseng, rewords);
+					break;
+				}
 			} 
 		}
 
 	} 
 	else
-		match_lines(rewords, lwords);
-	free_tokens(rewords);
-	recount = make_tokens(ruseng, rewords);
+		if(!match_lines(rewords, lwords))
+		{
+			free_tokens(rewords);
+			recount = make_tokens(ruseng, rewords);
+		}
 	if ((recount == rcount) && rcount)
 	for(int i = 0; i < recount; i++)
 		if(rewords[i]->is_latin)
 		{
-			replace_local_if_unknown(rewords[i], rwords[i]);
+			if(!replace_local_if_unknown(rewords[i], rwords[i]))
+			{
+				free_tokens(rewords);
+				recount = make_tokens(ruseng, rewords);
+				break;
+			}
 		} 
 	free_tokens(rewords);
 	free_tokens(rwords);

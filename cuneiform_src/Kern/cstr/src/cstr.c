@@ -368,7 +368,7 @@ for(c=CSTR_GetNextRaster (start,CSTR_f_all); c && c!=stop; c=CSTR_GetNextRaster 
 return TRUE;
 }
 
-CSTR_FUNC(Bool32)      CSTR_ReplaceWord(CSTR_rast dest_begin, CSTR_rast dest_end, CSTR_rast src_begin, CSTR_rast src_end)
+CSTR_FUNC(Bool32)      CSTR_ReplaceWord(CSTR_rast * dest_begin, CSTR_rast * dest_end, CSTR_rast src_begin, CSTR_rast src_end)
 {
 CSTR_rast       start   = src_begin, stop = src_end, c;
 CSTR_rast_attr  attr;
@@ -378,17 +378,18 @@ UniVersions     vr;
 CCOM_comp    *  comp;
 CSTR_attr       lattr;
 CSTR_rast       newdn,dn;
+CSTR_rast newbeg = 0, newend;
 
-if (dest_begin != dest_end)
+if ((*dest_begin) != (*dest_end))
 {
-	c=CSTR_GetNextRaster (dest_begin,CSTR_f_all);
-	while ((c != dest_end)&&c) 
+	c=CSTR_GetNextRaster (*dest_begin, CSTR_f_all);
+	while ((c != (*dest_end))&&c) 
 		c = CSTR_DelRaster(c);
 	if (c)
 		CSTR_DelRaster(c);
 }
-cnew = dest_begin;
-for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
+cnew = (*dest_begin);
+for(c=start; c && (c!=stop); c=CSTR_GetNextRaster (c,CSTR_f_all))
     {
     if( CSTR_GetAttr (c, &attr) 
 	&& CSTR_GetImage (c, (Word8 *)&rs, CSTR_TYPE_IMAGE_RS) 
@@ -397,6 +398,8 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
         {
         if( !(cnew=CSTR_InsertRaster (cnew)))
             return FALSE;
+	if (!newbeg) newbeg = cnew;
+	newend = cnew;
         if( !CSTR_SetAttr (cnew, &attr) )
             return FALSE;
         if( !CSTR_StoreRaster (cnew, &rs) )
@@ -427,6 +430,8 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
 	{
 		if( !(cnew=CSTR_InsertRaster (cnew)))
 			return FALSE;
+		if (!newbeg) newbeg = cnew;
+		newend = cnew;
 		if( !CSTR_SetAttr (cnew, &attr) )
 			return FALSE;
 		if( !CSTR_StoreRaster (cnew, &rs) )
@@ -436,7 +441,6 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
 		if( !CSTR_StoreScale(cnew,comp->scale) )
 			return FALSE;
 	}
-
 	if( (CSTR_cell*)c->next_down )
         { //  start of bracnh
 		newdn=cnew;
@@ -448,7 +452,9 @@ for(c=start; c && c!=stop; c=CSTR_GetNextRaster (c,CSTR_f_all))
         }
     }
 
-    CSTR_DelRaster(dest_begin);
+    CSTR_DelRaster(*dest_begin);
+    *dest_begin = newbeg;
+    *dest_end = newend;
     return TRUE;
 }
 
