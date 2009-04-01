@@ -39,6 +39,41 @@ void copy_text(SPWord * word)
 	word->text[word->wlen] = 0;
 }
 
+Bool32 find_closest_local_match(SPWord * word, int pos, CSTR_rast start)
+{
+	CSTR_rast rast = start;
+	int i = pos;
+	while ((i < word->wlen) && rast)
+	{
+		if (rast->vers) 
+		{
+			if (rast->vers->lnAltCnt > 1)
+			{
+				for (int j = 1; j < rast->vers->lnAltCnt; j++)
+				{
+					word->text[i] = rast->vers->Alt[j].Code[0];
+					Int32 poc;
+					RLING_CheckWord((PInt8) word->text, &poc);
+					if (poc)
+					{
+						memcpy((void *)&(rast->vers->Alt[0]), (void *)&(rast->vers->Alt[j]), sizeof(rast->vers->Alt[0]));
+						return TRUE;
+					}
+					else
+					{
+						if(find_closest_local_match(word, i + 1, CSTR_GetNext(rast)))
+							return TRUE;
+					}
+				}
+				break;
+			}
+			i++;
+		}
+		rast=CSTR_GetNext(rast);
+	}
+	return FALSE;
+}
+
 int make_tokens(CSTR_line line, SPWord ** words)
 {
 	CSTR_rast       rast=CSTR_GetFirstRaster(line);
@@ -49,7 +84,7 @@ int make_tokens(CSTR_line line, SPWord ** words)
 	{
 		if(wc > 1022) break;
 		if (rast->vers) {
-			if (strchr(",.():;!?\"\' %", rast->vers->Alt[0].Code[0]))
+			if (strchr(",.():;!?\" «»%", rast->vers->Alt[0].Code[0]))
 			{
 				if(!wb) 
 				{
@@ -120,8 +155,14 @@ Bool32 all_words_local(SPWord ** words)
 	 {
 		Int32 poc;
 		RLING_CheckWord((PInt8) words[i]->text, &poc);
-		if ((!poc) && (!fine_check(words[i])) && (!is_digit(words[i])))
+		if (!poc)
+		{
+			if(fine_check(words[i])|| is_digit(words[i]))
+				continue;			
+			if (find_closest_local_match(words[i], 0, words[i]->begin))
+				continue;
 			return FALSE;
+		}
 	 }
 	 return TRUE;
 }
@@ -145,17 +186,6 @@ void replace_line(CSTR_line dest, CSTR_line src)
 	}
 }
 
-Bool32 no_russian_words(SPWord ** words)
-{
-	 for (int i = 0; words[i]; i++)
-	 {
-		Int32 poc;
-		RLING_CheckSecWord((PInt8) words[i]->text, &poc);
-		if (poc)
-			return FALSE;
-	 }
-	 return TRUE;
-}
 
 
 
@@ -189,12 +219,19 @@ Bool32 replace_russian_if_unknown(SPWord * russian, SPWord * local)
 {
 	int poc;
 	RLING_CheckSecWord((PInt8) russian->text, &poc) ;
-	if(!poc) 
+	if((!poc)&&(!is_digit(russian))) 
 	{
 		RLING_CheckWord((PInt8) local->text, &poc);
 		if(poc)
 		{  
 			return replace_word(russian, local);
+		}
+		else
+		{
+			//if ((russian->wlen == 1) && fine_check(local))
+			//	return replace_word(russian, local);
+			if (find_closest_local_match(local, 0, local->begin))
+				return replace_word(russian, local);
 		}
 	}
 	return TRUE;
