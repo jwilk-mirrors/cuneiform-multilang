@@ -1201,6 +1201,7 @@ for(dup=0, rst = CSTR_GetNext(CSTR_GetFirstRaster(lino));rst;rst=CSTR_GetNext(rs
 		{ // слова-дубликат найдено
 		eng=CSTR_InsertRasterDown(start,rst); // dup образовать петлю
 		CSTR_CopyRaster(eng,dup);
+		oldeng = 0;
 		if( dup!=dupend )
 		for(oldeng=CSTR_GetNext(dup);oldeng && oldeng!=dupend;oldeng=CSTR_GetNext(oldeng))
 			{

@@ -377,21 +377,9 @@ static Bool32 MultilangRecognizeStringsPass1(void)
 						
 			if (prl >  0.06)
 			{
-//				CSTR_EmptyLine(lin_out);
-//				CSTR_DeleteLine(lin_out);
-/*				opt.language = LANG_RUSENG;
-				RSTR_SetOptions (&opt);
-				lin_out = CSTR_NewLine(i+count, CSTR_LINVERS_MAINOUT, -1);
-				if (!RSTR_Recog(lin_in, lin_out)) // Recognition
-				{
-					SetReturnCode_puma(RSTR_GetReturnCode());
-					rc = FALSE;
-					break;
-				}*/
+			
 				CSTR_SetNewLineNumber(lin_out, i + count);
-//				lin_out1  = CSTR_GetLineHandle (i-1,CSTR_LINVERS_MAINOUT);
-//				if(lin_out1)
-//				    CSTR_SetNewLineNumber(lin_out1, i + count-1);
+				
   			}
 			else
 			{

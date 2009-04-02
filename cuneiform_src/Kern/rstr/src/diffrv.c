@@ -238,7 +238,7 @@ static BYTE let_stick[256] = {
    0,0,0,1,0,1,1,0,2,1,1,0,0,2,0,2,
 // Ä Å Ç É Ñ Ö Ü á à â ä ã å ç é è
    1,0,1,0,1,1,0,1,3,0,1,0,1,0,1,1,
-// ê ë í ì î ï ñ ó ò ô ö õ ú ù û ü
+// ê ë í ì î ï ñ ó ? ô ö õ ú ù û ü
    0,0,0,1,0,0,1,0,2,0,1,0,0,2,0,2,
 // † ° ¢ £ § • ¶ ß ® © ™ ´ ¨ ≠ Æ Ø
    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -1882,7 +1882,7 @@ if( nstick==2 || nstick_broken==2)
 
   switch( let ){
   case  (BYTE)'Ë'     :
-  case  (BYTE)'ò'     :
+  case  (BYTE)'?'     :
 	  if(suspect_italic_III(c))
 	    {
 		 pen += old_diskr;
@@ -2209,6 +2209,7 @@ for(i=h/3;i<p;i++)
 if( hist_white[i]>0  && hist_white[i+1]==0 )
         i++;
 
+lstairs = 0;
 if( i<p || hist_n[i]==1 && hist_d[i]>2*foot_wid+dest_foot-dop)
         {
         p = MAX(dest_foot-2,3);

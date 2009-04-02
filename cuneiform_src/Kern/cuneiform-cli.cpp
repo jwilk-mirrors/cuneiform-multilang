@@ -317,12 +317,16 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    
+    Bool32 singlecolumn = TRUE;
+    PUMA_SetImportData(PUMA_Bool32_OneColumn, &singlecolumn);
+
     if (langcode > 255) 
     {
 	PUMA_SetMultiLang(langcode >> 8);
 	langcode = PUMA_LANG_RUSENG;
 	PUMA_SetImportData(PUMA_Word32_Language, &langcode);  
-	PUMA_SetSpecialProject(1);
+	PUMA_SetSpecialProject(3);
     } 
     else 
     	// Set the language.
