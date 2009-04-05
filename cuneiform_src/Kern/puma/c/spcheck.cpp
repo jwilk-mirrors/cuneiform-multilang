@@ -107,7 +107,7 @@ Bool32 find_closest_local_match(SPWord * word, int pos, CSTR_rast start)
 		{
 			if (rast->vers->lnAltCnt > 1)
 			{
-				for (int j = 1; j < rast->vers->lnAltCnt; j++)
+				for (int j = 0; j < rast->vers->lnAltCnt; j++)
 				{
 					word->text[i] = rast->vers->Alt[j].Code[0];
 					Int32 poc;

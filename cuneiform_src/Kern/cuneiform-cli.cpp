@@ -215,8 +215,9 @@ int main(int argc, char **argv) {
     const char *defaultnamestem = "cuneiform-out.";
     string outfilename;
     Int32 outputformat = PUMA_TOTEXT;
+    Bool32 singlecolumn = FALSE;  
 
-    cout << "Cuneiform for Linux " << CF_VERSION << "\n";
+    cout << "Cuneiform for Linux " << CF_VERSION << " (modified) " <<"\n";
 
     /* Parsing command line parameters. */
     for(int i=1; i<argc; i++) {
@@ -265,7 +266,9 @@ int main(int argc, char **argv) {
             dotmatrix = TRUE;
         } else if(strcmp(argv[i], "--fax") == 0) {
             fax = TRUE;
-        } else {
+        } else if (strcmp(argv[i], "-c1") == 0) {
+	    singlecolumn = TRUE;
+	} else {
         /* No switches, so set input file. */
         infilename = argv[i];
         }
@@ -318,8 +321,8 @@ int main(int argc, char **argv) {
     }
 
     
-    Bool32 singlecolumn = TRUE;
-    PUMA_SetImportData(PUMA_Bool32_OneColumn, &singlecolumn);
+    if (singlecolumn)
+      PUMA_SetImportData(PUMA_Bool32_OneColumn, &singlecolumn);
 
     if (langcode > 255) 
     {
