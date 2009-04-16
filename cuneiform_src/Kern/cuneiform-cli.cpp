@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
     Int32 outputformat = PUMA_TOTEXT;
     Bool32 singlecolumn = FALSE;  
 
-    cout << "Cuneiform for Linux " << CF_VERSION << " (modified) " <<"\n";
+    cout << "Cuneiform for Linux " << CF_VERSION << " (multilang) " <<"\n";
 
     /* Parsing command line parameters. */
     for(int i=1; i<argc; i++) {
@@ -307,7 +307,9 @@ int main(int argc, char **argv) {
     }
 
     if(infilename == NULL) {
-        cout << "Usage: " << argv[0] << "[-l languagename -f format --dotmatrix --fax -o result_file] imagefile\n";
+        cout << "This is a multi-language (modified) version of cuneiform. Look in readme-multilang.txt for the differences between this and the original version.\n";
+	cout << "Usage: " << argv[0] << "[-l languagename -f format --dotmatrix --fax -o result_file] imagefile\n";
+	cout << "Additional key: -c1 - force representing input text as a single column.\n";
         return 0;
     }
 
