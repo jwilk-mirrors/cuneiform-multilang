@@ -1,5 +1,33 @@
 /*
-Copyright (c) 2008, Jussi Pakkanen
+Copyright (c) 2008, 2009 Jussi Pakkanen
+
+Разрешается повторное распространение и использование как в виде исходного кода,
+так и в двоичной форме, с изменениями или без, при соблюдении следующих условий:
+
+      * При повторном распространении исходного кода должны оставаться указанное
+        выше уведомление об авторском праве, этот список условий и последующий
+        отказ от гарантий.
+      * При повторном распространении двоичного кода в документации и/или в
+        других материалах, поставляемых при распространении, должны сохраняться
+        указанная выше информация об авторском праве, этот список условий и
+        последующий отказ от гарантий.
+      * Ни название Cognitive Technologies, ни имена ее сотрудников не могут
+        быть использованы в качестве средства поддержки и/или продвижения
+        продуктов, основанных на этом ПО, без предварительного письменного
+        разрешения.
+
+ЭТА ПРОГРАММА ПРЕДОСТАВЛЕНА ВЛАДЕЛЬЦАМИ АВТОРСКИХ ПРАВ И/ИЛИ ДРУГИМИ ЛИЦАМИ "КАК
+ОНА ЕСТЬ" БЕЗ КАКОГО-ЛИБО ВИДА ГАРАНТИЙ, ВЫРАЖЕННЫХ ЯВНО ИЛИ ПОДРАЗУМЕВАЕМЫХ,
+ВКЛЮЧАЯ ГАРАНТИИ КОММЕРЧЕСКОЙ ЦЕННОСТИ И ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ, НО НЕ
+ОГРАНИЧИВАЯСЬ ИМИ. НИ ВЛАДЕЛЕЦ АВТОРСКИХ ПРАВ И НИ ОДНО ДРУГОЕ ЛИЦО, КОТОРОЕ
+МОЖЕТ ИЗМЕНЯТЬ И/ИЛИ ПОВТОРНО РАСПРОСТРАНЯТЬ ПРОГРАММУ, НИ В КОЕМ СЛУЧАЕ НЕ
+НЕСЁТ ОТВЕТСТВЕННОСТИ, ВКЛЮЧАЯ ЛЮБЫЕ ОБЩИЕ, СЛУЧАЙНЫЕ, СПЕЦИАЛЬНЫЕ ИЛИ
+ПОСЛЕДОВАВШИЕ УБЫТКИ, СВЯЗАННЫЕ С ИСПОЛЬЗОВАНИЕМ ИЛИ ПОНЕСЕННЫЕ ВСЛЕДСТВИЕ
+НЕВОЗМОЖНОСТИ ИСПОЛЬЗОВАНИЯ ПРОГРАММЫ (ВКЛЮЧАЯ ПОТЕРИ ДАННЫХ, ИЛИ ДАННЫЕ,
+СТАВШИЕ НЕГОДНЫМИ, ИЛИ УБЫТКИ И/ИЛИ ПОТЕРИ ДОХОДОВ, ПОНЕСЕННЫЕ ИЗ-ЗА ДЕЙСТВИЙ
+ТРЕТЬИХ ЛИЦ И/ИЛИ ОТКАЗА ПРОГРАММЫ РАБОТАТЬ СОВМЕСТНО С ДРУГИМИ ПРОГРАММАМИ,
+НО НЕ ОГРАНИЧИВАЯСЬ ЭТИМИ СЛУЧАЯМИ), НО НЕ ОГРАНИЧИВАЯСЬ ИМИ, ДАЖЕ ЕСЛИ ТАКОЙ
+ВЛАДЕЛЕЦ ИЛИ ДРУГОЕ ЛИЦО БЫЛИ ИЗВЕЩЕНЫ О ВОЗМОЖНОСТИ ТАКИХ УБЫТКОВ И ПОТЕРЬ.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -305,7 +333,7 @@ HWND GetFocus() {
 }
 
 int MessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) {
-    printf("lpText");
+    fprintf(stderr, "MessageBox %s: %s\n", lpCaption, lpText);
     return 0;
 }
 
@@ -464,6 +492,9 @@ char* _strupr(char*s) {
 
 #else /* WIN32 */
 
+#include<io.h>
+#include<direct.h>
+#include"winfuncs.h"
 #include "cttypes.h"
 #include <windows.h>
 #include <malloc.h>
@@ -520,10 +551,6 @@ mkdtemp(char *tmpl) {
 static const char *separator = "/"; /* Yes, on Windows too. */
 
 #ifdef WIN32
-
-#include<io.h>
-#include<direct.h>
-#include"winfuncs.h"
 
 static void get_install_path(char *path) {
 	const int psize = 128;
@@ -692,7 +719,7 @@ winpath_to_internal(char *p) {
 
 /* Get current working directory. */
 
-unsigned int curr_dir(unsigned int bsize, char* buf) {
+WINDUMMY_FUNC(unsigned int) curr_dir(unsigned int bsize, char* buf) {
 #ifdef _MSC_VER
 	_getcwd(buf, bsize);
 #else
@@ -701,3 +728,49 @@ unsigned int curr_dir(unsigned int bsize, char* buf) {
     winpath_to_internal(buf);
     return strlen(buf);
 }
+
+#if WIN32
+
+#define BUFSIZE 100
+
+WINDUMMY_FUNC (FILE*)
+create_temp_file(void) {
+    char temppath[BUFSIZE];
+    char tempfname[BUFSIZE];
+    DWORD retval;
+
+    retval = GetTempPath(BUFSIZE, temppath);
+    if(retval >= BUFSIZE || retval == 0)
+        return NULL;
+
+    if(GetTempFileName(temppath, "CF", 0, tempfname) == 0)
+        return NULL;
+
+    return fopen(tempfname, "w+bD");
+}
+
+#else
+
+WINDUMMY_FUNC (FILE*)
+create_temp_file(void) {
+	FILE *tmp_file;
+	int tmp_fd;
+	char* pattrn = malloc(100);
+	strcpy(pattrn, "/tmp/CF.XXXXXX");
+
+	tmp_fd = mkstemp(pattrn);
+
+	/* unlink file immediatly, it gets unlinked when file descriptor is closed */
+	unlink(pattrn);
+    free(pattrn);
+
+	if (tmp_fd == -1)
+		return NULL;
+
+	if (!(tmp_file = fdopen(tmp_fd, "w+b"))) {
+		return NULL;
+	}
+
+	return tmp_file;
+}
+#endif

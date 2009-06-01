@@ -24,13 +24,14 @@ Alexander Schlegel
 Alex Samorukov
 yaleks
 Serj Poltavskiy
-René Rebe
+RenÃ© Rebe
 Aleks Kuzemko
 Tonal
 Mike Ladwig
 Dmitri Polevoy
 Steven Van Ingelgem
 Sven Eckelmann
+Benjamin Kluck
 
 
 Caveats
